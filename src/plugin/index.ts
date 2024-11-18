@@ -2,10 +2,10 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-18 15:06:55
+ * @LastEditTime: 2024-11-18 16:35:53
  * @LastEditors: 14K
  */
-import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable, TextElem } from '@icqq-plus/icqq'
+import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
 import type { ScheduledTask } from 'node-cron'
 import type { PluginConfig } from './types'
 import * as nodeCron from 'node-cron'

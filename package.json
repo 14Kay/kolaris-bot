@@ -1,5 +1,5 @@
 {
-  "name": "@14kay/kolaris-bot",
+  "name": "kolaris-bot",
   "type": "module",
   "version": "0.0.1",
   "packageManager": "pnpm@8.4.0",

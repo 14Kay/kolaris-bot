@@ -1,4 +1,4 @@
-import type { Forwardable, TextElem } from '@icqq-plus/icqq'
+import type { Forwardable } from '@icqq-plus/icqq'
 import type { Kolaris } from './index'
 import type { PluginInfo } from './types'
 import path from 'node:path'
