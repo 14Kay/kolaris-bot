@@ -2,7 +2,7 @@
  * @Description: 上线事件
  * @Author: 14K
  * @Date: 2024-11-15 14:01:29
- * @LastEditTime: 2024-11-18 16:28:21
+ * @LastEditTime: 2024-11-18 23:36:23
  * @LastEditors: 14K
  */
 import type { Kolaris } from './index'
@@ -39,8 +39,8 @@ export async function online(this: Kolaris) {
 					required: false,
 				},
 			], errMsg => event.reply(errMsg))
-			.run(event, async ([,,,{ c, p, command, plugin }]) => {
-				return event.reply(await management.call(this, c || command, p || plugin) || '未知命令')
+			.run(event, async ({ command }) => {
+				return event.reply(await management.call(this, command?.c || command?.command, command?.p || command?.plugin) || '未知命令')
 			})
 	})
 

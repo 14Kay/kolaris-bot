@@ -2,7 +2,7 @@
  * @Description: 消息处理中间件
  * @Author: 14K
  * @Date: 2024-11-14 12:07:24
- * @LastEditTime: 2024-11-18 21:38:01
+ * @LastEditTime: 2024-11-18 22:35:33
  * @LastEditors: 14K
  */
 import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@icqq-plus/icqq'
@@ -86,7 +86,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	blackWords(words: string | string[]) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
@@ -105,7 +105,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	getText() {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
@@ -118,7 +118,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	at(uin: number | number[]) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const uinList = Array.isArray(uin) ? uin : [uin]
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
@@ -138,7 +138,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	equal(text: string | string[]) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
@@ -158,7 +158,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	reg(reg: RegExp) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text')
@@ -177,7 +177,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	group(groups: number[] | number) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { group_id } = context as GroupMessageEvent
 				if ((Array.isArray(groups) && groups.includes(group_id)) || groups === group_id) {
@@ -191,7 +191,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	sender(uin: number | number[]) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { sender } = context as GroupMessageEvent | PrivateMessageEvent
 				if (!Array.isArray(uin)) {
@@ -209,7 +209,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	image(count = 1) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const imageMessage = getTargetType(message, 'image')
@@ -225,7 +225,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	startsWith(prefix: string) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
@@ -246,7 +246,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
   * @return {*}
   */
 	type(types: MessageElem['type'] | MessageElem['type'][], callback?: Next) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				if (!Array.isArray(types))
 					types = [types]
@@ -276,7 +276,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	 * @return {*}
 	 */
 	some(types: MessageElem['type'] | MessageElem['type'][], callback?: Next) {
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				if (!Array.isArray(types))
 					types = [types]
@@ -301,7 +301,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 		if (!(Array.isArray(option))) {
 			option = [option]
 		}
-		this.stack.push((context: any, next: Next) => {
+		this.stack.push((context, next) => {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
