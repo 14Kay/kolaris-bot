@@ -2,7 +2,7 @@
  * @Description:
  * @Author: 14K
  * @Date: 2024-11-15 14:06:33
- * @LastEditTime: 2024-11-18 15:01:31
+ * @LastEditTime: 2024-11-19 14:59:41
  * @LastEditors: 14K
  */
 import type { BotPlugin } from './../plugin/types'
@@ -79,7 +79,8 @@ export async function loadSavedPlugins(this: Kolaris) {
 export async function enablePlugin(this: Kolaris, pluginPath: string, name: string) {
 	this.log(`正在载入插件: ${name} ...`)
 	try {
-		const plugin: BotPlugin = await require(pluginPath)
+		const _plugin = await require(pluginPath)
+		const plugin: BotPlugin = _plugin.default || _plugin
 		const pkg = path.join(pluginPath, 'package.json')
 		const config: PluginInfo['info'] = fsExtra.pathExistsSync(pkg)
 			? fsExtra.readJSONSync(pkg)
