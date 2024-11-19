@@ -2,7 +2,7 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-18 16:35:53
+ * @LastEditTime: 2024-11-19 15:54:14
  * @LastEditors: 14K
  */
 import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
@@ -25,11 +25,12 @@ export class Plugin {
 			if (this.checkStatus(data) && this.checkPrefix(textMessage)) {
 				if (eventType === 'group') {
 					const event = data as GroupMessageEvent
-					data.reply = (content: Sendable, quote: boolean = false) => {
+					const reply = (content: Sendable, quote: boolean = false) => {
 						return event.group.sendMsg(content, quote ? event : (this.config.quote ? event : undefined))
 					}
+					return callback({ ...data, reply })
 				}
-				callback(data)
+				return callback(data)
 			}
 		}
 
