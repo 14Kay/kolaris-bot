@@ -2,18 +2,23 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-19 15:54:14
+ * @LastEditTime: 2024-11-19 16:52:43
  * @LastEditors: 14K
  */
 import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
 import type { ScheduledTask } from 'node-cron'
 import type { PluginConfig } from './types'
+import Koa from 'koa'
+import koaBodyParser from 'koa-bodyparser'
+import KoaRouter from 'koa-router'
 import * as nodeCron from 'node-cron'
 import { getTargetType, PluginError } from './../utils'
 
+export type HttpHandler = (router: KoaRouter) => any
 type Func = (...args: any[]) => any
 export class Plugin {
 	private handlers: Map<string, Func[]> = new Map()
+	private httpServer: Map<string, any> = new Map()
 	private cronTasks: ScheduledTask[] = []
 	constructor(public client: Client, public config: PluginConfig = {}) {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
@@ -80,6 +85,48 @@ export class Plugin {
 		this.cronTasks.forEach(task => task.stop())
 	}
 
+	http(port: number, fn: HttpHandler) {
+		if (this.httpServer.has(port.toString())) {
+			this.client.logger.warn(`KolarisPlugin - HTTP服务`, `HTTP服务已在端口：${port} 运行`)
+			throw new PluginError(this.config.name, 'HTTP服务已在端口运行')
+		}
+		const server = this.startHttp(port, fn)
+		return this.httpServer.set(port.toString(), server)
+	}
+
+	startHttp(port: number, fn: HttpHandler) {
+		const app = new Koa()
+		const router = new KoaRouter()
+		app.use(koaBodyParser())
+		app.use(router.routes())
+		const server = app.listen(port, () => {
+			this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已启动，端口：${port}`)
+			fn(router)
+		})
+
+		server.on('error', (err) => {
+			this.client.logger.error(`KolarisPlugin - HTTP服务`, `端口：${port} 的HTTP服务发生错误：${err.message}`)
+		})
+
+		return server
+	}
+
+	stopHttp(port: number) {
+		const server = this.httpServer.get(port.toString())
+		if (!server) {
+			this.client.logger.warn(`KolarisPlugin - HTTP服务`, `未找到端口：${port} 的HTTP服务`)
+			throw new PluginError(this.config.name, '未找到HTTP服务')
+		}
+
+		server.close(() => this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已关闭，端口：${port}`))
+	}
+
+	private stopAllHttpServer() {
+		for (const [eventName, handlers] of this.httpServer) {
+			handlers.close(() => this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已关闭，端口：${eventName}`))
+		}
+	}
+
 	private addListener(eventName: string, handler: Func) {
 		const handlers = this.handlers.get(eventName)
 		this.handlers.set(eventName, handlers ? [...handlers, handler] : [handler])
@@ -93,6 +140,7 @@ export class Plugin {
 
 	destroy() {
 		this.removeListeners()
+		this.stopAllHttpServer()
 		this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
 	}
 }

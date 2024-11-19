@@ -2,9 +2,10 @@
  * @Description: Kolaris
  * @Author: 14K
  * @Date: 2024-11-14 23:32:56
- * @LastEditTime: 2024-11-18 15:44:20
+ * @LastEditTime: 2024-11-19 17:30:39
  * @LastEditors: 14K
  */
+
 import type { Buffer } from 'node:buffer'
 import type { Plugin } from './../plugin'
 import type { KolarisConfig, PluginJson } from './types'
@@ -12,6 +13,7 @@ import path from 'node:path'
 import process from 'node:process'
 import { Client } from '@icqq-plus/icqq'
 import fsExtra from 'fs-extra'
+import { Mysql } from './../mysql'
 import { KolarisError } from './../utils'
 import { online } from './online'
 
@@ -28,9 +30,10 @@ export class Kolaris extends Client {
 		actived: [],
 	}
 
+	mysql: Mysql | null = null
 	runAt: number = Date.now()
 	constructor(protected kolarisConfig: KolarisConfig) {
-		const { config, uin, pluginDir } = kolarisConfig
+		const { config, uin, pluginDir, mysqlConfig } = kolarisConfig
 		super(uin, config)
 		if (!fsExtra.pathExistsSync(this.pluginFilePath)) {
 			fsExtra.ensureFileSync(this.pluginFilePath)
@@ -38,6 +41,9 @@ export class Kolaris extends Client {
 		}
 		this.pluginList = fsExtra.readJSONSync(this.pluginFilePath)
 		this.pluginDir = path.resolve(process.cwd(), pluginDir || 'plugins')
+		if (mysqlConfig) {
+			this.mysql = new Mysql(mysqlConfig)
+		}
 	}
 
 	sendMessage2Masters(message: string) {

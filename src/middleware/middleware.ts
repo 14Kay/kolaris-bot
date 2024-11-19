@@ -2,7 +2,7 @@
  * @Description: 消息处理中间件
  * @Author: 14K
  * @Date: 2024-11-14 12:07:24
- * @LastEditTime: 2024-11-18 22:35:33
+ * @LastEditTime: 2024-11-19 19:52:35
  * @LastEditors: 14K
  */
 import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@icqq-plus/icqq'
@@ -24,9 +24,10 @@ export interface IMiddleware<T> {
 
 export interface ProcessedData {
 	at?: number[]
+	atList?: number[]
 	equal?: string
 	text?: string
-	image?: ImageElem[]
+	imageList?: ImageElem[]
 	blackWord?: string
 	reg?: RegExpMatchArray
 	group_id?: number
@@ -99,19 +100,6 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 				return next('blackWord', textMessage)
 			} catch (e: any) {
 				throw new MiddlewareError('blackWords', e.message)
-			}
-		})
-		return this
-	}
-
-	getText() {
-		this.stack.push((context, next) => {
-			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
-				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
-				return next('text', textMessage)
-			} catch (e: any) {
-				throw new MiddlewareError('text', e.message)
 			}
 		})
 		return this
@@ -208,18 +196,36 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 		return this
 	}
 
-	image(count = 1) {
+	getImage() {
 		this.stack.push((context, next) => {
-			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
-				const imageMessage = getTargetType(message, 'image')
-				if (imageMessage.length !== 0 && imageMessage.length >= count) {
-					return next('image', imageMessage)
-				}
-				throw new MiddlewareError('image', 'Image count not match')
-			} catch (e: any) {
-				throw new MiddlewareError('image', e.message)
+			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const imageMessage = getTargetType(message, 'image')
+			if (imageMessage.length !== 0) {
+				return next('imageList', imageMessage)
 			}
+			return next('imageList', [])
+		})
+		return this
+	}
+
+	getText() {
+		this.stack.push((context, next) => {
+			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
+			return next('text', textMessage || '')
+		})
+		return this
+	}
+
+	getAt() {
+		this.stack.push((context, next) => {
+			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const atMessage = getTargetType(message, 'at')
+			if (atMessage.length !== 0) {
+				const atUin = atMessage.filter(elem => elem.qq !== 'all').map(elem => elem.qq)
+				return next('atList', atUin as number[])
+			}
+			return next('atList', [])
 		})
 		return this
 	}
@@ -321,10 +327,10 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 								throw new MiddlewareError('command', `Missing required argument: ${command}`)
 							}
 
-							args[command] = defaultValue
-							args[alias] = defaultValue
+							args[command] = args[alias] = defaultValue
 						}
-
+						args[command] ||= args[alias]
+						args[alias] ||= args[command]
 						const value = (args[command] || args[alias]) as string
 
 						const checkType = (value: any, expectedType: string, command: string) => {

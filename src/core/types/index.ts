@@ -1,4 +1,5 @@
 import type { Config } from '@icqq-plus/icqq'
+import type { PoolConfig } from 'mysql'
 import type { PluginConfig } from './../../plugin/types'
 
 export interface PluginInfo {
@@ -28,4 +29,5 @@ export interface KolarisConfig {
 	/* bot主人 */
 	master?: number[] | number
 	logPrefix?: string
+	mysqlConfig?: PoolConfig
 }
