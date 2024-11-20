@@ -18,6 +18,7 @@ export default eslint(
 			'no-new': 'off',
 			'no-case-declarations': 'off',
 			'style/brace-style': ['error', '1tbs', { allowSingleLine: true }],
+			'ts/no-unsafe-declaration-merging': 'off',
 		},
 	},
 )

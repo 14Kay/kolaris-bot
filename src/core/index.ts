@@ -2,7 +2,7 @@
  * @Description: Kolaris
  * @Author: 14K
  * @Date: 2024-11-14 23:32:56
- * @LastEditTime: 2024-11-19 17:30:39
+ * @LastEditTime: 2024-11-20 17:37:30
  * @LastEditors: 14K
  */
 
@@ -109,5 +109,13 @@ export class Kolaris extends Client {
 		this.login(this.kolarisConfig.password || undefined)
 		this.once('system.online', online.bind(this))
 		this.initListener()
+	}
+
+	async wait(time: number) {
+		return new Promise(resolve => setTimeout(() => resolve(true), time))
+	}
+
+	randomFrom(min: number, max: number): number {
+		return Math.floor(Math.random() * (max - min + 1) + min)
 	}
 }

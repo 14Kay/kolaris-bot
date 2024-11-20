@@ -2,10 +2,11 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-19 16:52:43
+ * @LastEditTime: 2024-11-20 17:12:51
  * @LastEditors: 14K
  */
 import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
+import type { DatabaseOptions } from 'classic-level'
 import type { ScheduledTask } from 'node-cron'
 import type { PluginConfig } from './types'
 import Koa from 'koa'
@@ -13,12 +14,14 @@ import koaBodyParser from 'koa-bodyparser'
 import KoaRouter from 'koa-router'
 import * as nodeCron from 'node-cron'
 import { getTargetType, PluginError } from './../utils'
+import { Database } from './leveldb'
 
 export type HttpHandler = (router: KoaRouter) => any
 type Func = (...args: any[]) => any
 export class Plugin {
 	private handlers: Map<string, Func[]> = new Map()
 	private httpServer: Map<string, any> = new Map()
+	private dbMap: Map<string, Database<any>> = new Map()
 	private cronTasks: ScheduledTask[] = []
 	constructor(public client: Client, public config: PluginConfig = {}) {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
@@ -30,8 +33,9 @@ export class Plugin {
 			if (this.checkStatus(data) && this.checkPrefix(textMessage)) {
 				if (eventType === 'group') {
 					const event = data as GroupMessageEvent
-					const reply = (content: Sendable, quote: boolean = false) => {
-						return event.group.sendMsg(content, quote ? event : (this.config.quote ? event : undefined))
+					const reply = (content: Sendable, quote?: boolean) => {
+						const shouldQuote = quote !== undefined ? quote : this.config.quote
+						return event.group.sendMsg(content, shouldQuote ? event : undefined)
 					}
 					return callback({ ...data, reply })
 				}
@@ -121,6 +125,37 @@ export class Plugin {
 		server.close(() => this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已关闭，端口：${port}`))
 	}
 
+	getLevelDB<T = Record<string, string>>(location: string) {
+		if (!this.dbMap.has(location))
+			throw new PluginError(this.config.name, `数据库${location}不存在`)
+		return this.dbMap.get(location) as Database<T>
+	}
+
+	levelDB<T = Record<string, string>>(location: string, options?: DatabaseOptions<keyof T, T[keyof T]>) {
+		if (this.dbMap.has(location))
+			throw new PluginError(this.config.name, `数据库${location}已存在`)
+		const db = new Database<T>(location, options)
+		this.dbMap.set(location, db)
+		return db
+	}
+
+	closeAllLevelDB() {
+		for (const [location, db] of this.dbMap) {
+			db.close()
+			this.dbMap.delete(location)
+		}
+	}
+
+	closeLevelDB(location: string) {
+		const db = this.dbMap.get(location)
+		if (!db) {
+			this.client.logger.warn(`KolarisPlugin - LevelDB`, `未找到数据库：${location}`)
+			throw new PluginError(this.config.name, '未找到数据库')
+		}
+		db.close()
+		this.dbMap.delete(location)
+	}
+
 	private stopAllHttpServer() {
 		for (const [eventName, handlers] of this.httpServer) {
 			handlers.close(() => this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已关闭，端口：${eventName}`))
@@ -141,6 +176,7 @@ export class Plugin {
 	destroy() {
 		this.removeListeners()
 		this.stopAllHttpServer()
+		this.closeAllLevelDB()
 		this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
 	}
 }
