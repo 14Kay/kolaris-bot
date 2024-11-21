@@ -2,7 +2,7 @@
  * @Description: 消息处理中间件
  * @Author: 14K
  * @Date: 2024-11-14 12:07:24
- * @LastEditTime: 2024-11-21 15:34:05
+ * @LastEditTime: 2024-11-21 18:32:49
  * @LastEditors: 14K
  */
 import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@icqq-plus/icqq'
@@ -327,6 +327,8 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 				}
 				const checkPassed = option.every((opt) => {
 					const { command, alias, required, type, defaultValue } = opt
+					args[command] ||= args[alias]
+					args[alias] ||= args[command]
 					if (required) {
 						if (!args[command] && !args[alias]) {
 							if (!defaultValue) {
@@ -335,8 +337,7 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 							args[command] = args[alias] = defaultValue
 						}
-						args[command] ||= args[alias]
-						args[alias] ||= args[command]
+
 						const value = (args[command] || args[alias]) as string
 
 						const checkType = (value: any, expectedType: string, command: string) => {
