@@ -1,8 +1,8 @@
 <!--
  * @Description:
  * @Author: 14K
- * @Date: 2024-04-10 16:10:48
- * @LastEditTime: 2024-04-10 18:13:38
+ * @Date: 2024-11-13 12:55:10
+ * @LastEditTime: 2024-11-21 21:04:25
  * @LastEditors: 14K
 -->
 # kolaris-bot
@@ -12,10 +12,55 @@
 [![bundle][bundle-src]][bundle-href]
 [![JSDocs][jsdocs-src]][jsdocs-href]
 
-_description_
+## Usage
 
-> **Note**:
-> Replace `@14kay/kolaris-bot`, `_description_` and `14K` globally to use this template.
+```typescript
+import { Kolaris } from 'kolaris-bot'
+
+new Kolaris({
+	uin: 619113277,
+	// 私聊管理插件启、停的指令
+	command: 'plug',
+	// 插件存储目录
+	pluginDir: 'plugins',
+	master: [619113277],
+	config: {
+		platform: 5,
+		ver: '9.0.56',
+		sign_api_addr: xxx,
+		ignore_self: false,
+	},
+}).start()
+```
+## 插件写法
+
+```typescript
+import { defineBotPlugin, MessageMiddleware, Plugin } from 'kolaris-bot'
+
+export default defineBotPlugin({
+	setup: (client, config) => {
+		const plugin = new Plugin(client, config)
+		plugin.onGroupMessage(
+			(data: GroupMessageEvent) => {
+				// 使用消息处理中间件
+				new MessageMiddleware<GroupMessageEvent>()
+					.startsWith('查信息')
+					.equal()
+					.getAt()
+					.getText()
+				// 还有更多...
+					.run(data, async ({ atList, restText }) => {
+						// logic here
+					})
+
+				// OR your code
+			},
+		)
+		return plugin
+	},
+})
+```
+> Note：插件目前仅支持 commonjs 并不支持esm
 
 ## License
 
