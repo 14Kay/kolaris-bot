@@ -2,7 +2,7 @@
  * @Description: 消息处理中间件
  * @Author: 14K
  * @Date: 2024-11-14 12:07:24
- * @LastEditTime: 2024-11-19 19:52:35
+ * @LastEditTime: 2024-11-21 15:34:05
  * @LastEditors: 14K
  */
 import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@icqq-plus/icqq'
@@ -230,13 +230,19 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 		return this
 	}
 
-	startsWith(prefix: string) {
+	startsWith(prefix: string | string[]) {
 		this.stack.push((context, next) => {
 			try {
+				if (!Array.isArray(prefix)) {
+					prefix = [prefix]
+				}
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
-				if (textMessage.startsWith(prefix)) {
-					return next('restText', textMessage.slice(prefix.length).trim())
+
+				const matchedPrefix = prefix.find(pre => textMessage.startsWith(pre))
+
+				if (matchedPrefix) {
+					return next('restText', textMessage.slice(matchedPrefix.length).trim())
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('startsWith', e.message)

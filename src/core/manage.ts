@@ -74,6 +74,10 @@ async function handlePluginReboot(this: Kolaris, pluginName: string, plugin: Plu
 	try {
 		if (!this.pluginActivedMap.has(pluginName)) {
 			await enablePlugin.call(this, path.join(this.pluginDir, plugin.name), plugin.name)
+			this.pluginList.enabled.push(plugin.name)
+			this.pluginList.actived.push(plugin.name)
+			this.pluginList.enabled = Array.from(new Set(this.pluginList.enabled))
+			this.pluginList.actived = Array.from(new Set(this.pluginList.actived))
 			return `启用插件 ${pluginName} 成功`
 		}
 		await disablePlugin.call(this, pluginName)

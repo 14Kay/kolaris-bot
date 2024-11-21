@@ -1,5 +1,11 @@
+/*
+ * @Description:
+ * @Author: 14K
+ * @Date: 2024-11-15 17:04:51
+ * @LastEditTime: 2024-11-21 14:23:11
+ * @LastEditors: 14K
+ */
 import type { Config } from '@icqq-plus/icqq'
-import type { PoolConfig } from 'mysql'
 import type { PluginConfig } from './../../plugin/types'
 
 export interface PluginInfo {
@@ -29,5 +35,4 @@ export interface KolarisConfig {
 	/* bot主人 */
 	master?: number[] | number
 	logPrefix?: string
-	mysqlConfig?: PoolConfig
 }

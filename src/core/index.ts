@@ -2,7 +2,7 @@
  * @Description: Kolaris
  * @Author: 14K
  * @Date: 2024-11-14 23:32:56
- * @LastEditTime: 2024-11-20 17:37:30
+ * @LastEditTime: 2024-11-21 17:12:18
  * @LastEditors: 14K
  */
 
@@ -13,7 +13,6 @@ import path from 'node:path'
 import process from 'node:process'
 import { Client } from '@icqq-plus/icqq'
 import fsExtra from 'fs-extra'
-import { Mysql } from './../mysql'
 import { KolarisError } from './../utils'
 import { online } from './online'
 
@@ -30,10 +29,9 @@ export class Kolaris extends Client {
 		actived: [],
 	}
 
-	mysql: Mysql | null = null
 	runAt: number = Date.now()
 	constructor(protected kolarisConfig: KolarisConfig) {
-		const { config, uin, pluginDir, mysqlConfig } = kolarisConfig
+		const { config, uin, pluginDir } = kolarisConfig
 		super(uin, config)
 		if (!fsExtra.pathExistsSync(this.pluginFilePath)) {
 			fsExtra.ensureFileSync(this.pluginFilePath)
@@ -41,9 +39,6 @@ export class Kolaris extends Client {
 		}
 		this.pluginList = fsExtra.readJSONSync(this.pluginFilePath)
 		this.pluginDir = path.resolve(process.cwd(), pluginDir || 'plugins')
-		if (mysqlConfig) {
-			this.mysql = new Mysql(mysqlConfig)
-		}
 	}
 
 	sendMessage2Masters(message: string) {
@@ -60,7 +55,7 @@ export class Kolaris extends Client {
 
 	// 保存插件列表到plugin.json
 	savePluginFile() {
-		return fsExtra.writeJsonSync(this.pluginFilePath, this.pluginList)
+		return fsExtra.writeJsonSync(this.pluginFilePath, this.pluginList, { spaces: 2 })
 	}
 
 	// 保存单个插件的配置到package.json

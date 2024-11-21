@@ -2,10 +2,10 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-20 17:12:51
+ * @LastEditTime: 2024-11-21 17:28:23
  * @LastEditors: 14K
  */
-import type { Client, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
+import type { Client, EventMap, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
 import type { DatabaseOptions } from 'classic-level'
 import type { ScheduledTask } from 'node-cron'
 import type { PluginConfig } from './types'
@@ -13,7 +13,7 @@ import Koa from 'koa'
 import koaBodyParser from 'koa-bodyparser'
 import KoaRouter from 'koa-router'
 import * as nodeCron from 'node-cron'
-import { getTargetType, PluginError } from './../utils'
+import { PluginError } from './../utils'
 import { Database } from './leveldb'
 
 export type HttpHandler = (router: KoaRouter) => any
@@ -27,10 +27,15 @@ export class Plugin {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
 	}
 
+	on<T extends keyof EventMap>(event: T, listener: EventMap[T]) {
+		this.client.on(event, listener)
+		this.addListener(event, listener)
+		return this
+	}
+
 	private onMessage(eventType: 'group' | 'private', callback: (data: any) => void) {
 		const handler = (data: PrivateMessageEvent | GroupMessageEvent) => {
-			const textMessage = getTargetType(data.message, 'text').map(item => item.text.trim()).join('')
-			if (this.checkStatus(data) && this.checkPrefix(textMessage)) {
+			if (this.checkStatus(data)) {
 				if (eventType === 'group') {
 					const event = data as GroupMessageEvent
 					const reply = (content: Sendable, quote?: boolean) => {
@@ -42,7 +47,6 @@ export class Plugin {
 				return callback(data)
 			}
 		}
-
 		this.client.on(`message.${eventType}`, handler)
 		this.addListener(`message.${eventType}`, handler)
 		return this
@@ -56,18 +60,18 @@ export class Plugin {
 		return this.onMessage('private', callback)
 	}
 
-	checkStatus(event: PrivateMessageEvent | GroupMessageEvent): boolean {
+	private checkStatus(event: PrivateMessageEvent | GroupMessageEvent): boolean {
 		if (event.message_type === 'private') {
 			return this.checkUser(event.sender.user_id)
 		}
 		return this.checkUser(event.sender.user_id) && this.checkGroup(event.group_id)
 	}
 
-	checkUser(userId: number): boolean {
+	private checkUser(userId: number): boolean {
 		return this.config.blackUsers?.includes(userId) || true
 	}
 
-	checkGroup(groupId: number): boolean {
+	private checkGroup(groupId: number): boolean {
 		return this.config.blackGroups?.includes(groupId) || true
 	}
 
