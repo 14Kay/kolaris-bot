@@ -2,12 +2,13 @@
  * @Description: 插件系统
  * @Author: 14K
  * @Date: 2024-11-14 14:56:37
- * @LastEditTime: 2024-11-21 17:28:23
+ * @LastEditTime: 2024-11-21 21:41:28
  * @LastEditors: 14K
  */
 import type { Client, EventMap, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
 import type { DatabaseOptions } from 'classic-level'
 import type { ScheduledTask } from 'node-cron'
+import type { Kolaris } from './../core/index'
 import type { PluginConfig } from './types'
 import Koa from 'koa'
 import koaBodyParser from 'koa-bodyparser'
@@ -23,7 +24,7 @@ export class Plugin {
 	private httpServer: Map<string, any> = new Map()
 	private dbMap: Map<string, Database<any>> = new Map()
 	private cronTasks: ScheduledTask[] = []
-	constructor(public client: Client, public config: PluginConfig = {}) {
+	constructor(public client: Kolaris, public config: PluginConfig = {}) {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
 	}
 
@@ -35,7 +36,7 @@ export class Plugin {
 
 	private onMessage(eventType: 'group' | 'private', callback: (data: any) => void) {
 		const handler = (data: PrivateMessageEvent | GroupMessageEvent) => {
-			if (this.checkStatus(data)) {
+			if (this.checkStatus(data) || this.checkMaster(data.sender.user_id)) {
 				if (eventType === 'group') {
 					const event = data as GroupMessageEvent
 					const reply = (content: Sendable, quote?: boolean) => {
@@ -68,11 +69,21 @@ export class Plugin {
 	}
 
 	private checkUser(userId: number): boolean {
-		return this.config.blackUsers?.includes(userId) || true
+		return !this.config.blackUsers?.includes(userId)
 	}
 
 	private checkGroup(groupId: number): boolean {
-		return this.config.blackGroups?.includes(groupId) || true
+		return !this.config.blackGroups?.includes(groupId)
+	}
+
+	private checkMaster(userId: number): boolean {
+		const masters = this.client.kolarisConfig.master
+		if (!masters)
+			return false
+
+		return typeof masters === 'number'
+			? userId === masters
+			: Array.isArray(masters) && masters.includes(userId)
 	}
 
 	checkPrefix(message: string): boolean {

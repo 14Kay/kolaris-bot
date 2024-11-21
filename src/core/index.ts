@@ -2,7 +2,7 @@
  * @Description: Kolaris
  * @Author: 14K
  * @Date: 2024-11-14 23:32:56
- * @LastEditTime: 2024-11-21 17:12:18
+ * @LastEditTime: 2024-11-21 21:38:02
  * @LastEditors: 14K
  */
 
@@ -30,7 +30,7 @@ export class Kolaris extends Client {
 	}
 
 	runAt: number = Date.now()
-	constructor(protected kolarisConfig: KolarisConfig) {
+	constructor(public kolarisConfig: KolarisConfig) {
 		const { config, uin, pluginDir } = kolarisConfig
 		super(uin, config)
 		if (!fsExtra.pathExistsSync(this.pluginFilePath)) {
