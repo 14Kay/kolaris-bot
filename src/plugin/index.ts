@@ -192,6 +192,7 @@ export class Plugin {
 		this.removeListeners()
 		this.stopAllHttpServer()
 		this.closeAllLevelDB()
+		this.clearCronTasks()
 		this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
 	}
 }

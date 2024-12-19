@@ -91,10 +91,10 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 			try {
 				const { message } = context as GroupMessageEvent | PrivateMessageEvent
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
-				if (Array.isArray(words) && words.some(word => textMessage.includes(word))) {
+				if (Array.isArray(words) && words.includes(textMessage)) {
 					throw new MiddlewareError('blackWords', 'Message contains black words')
 				}
-				if (typeof words === 'string' && textMessage.includes(words)) {
+				if (typeof words === 'string' && textMessage === words) {
 					throw new MiddlewareError('blackWords', 'Message contains black words')
 				}
 				return next('blackWord', textMessage)
