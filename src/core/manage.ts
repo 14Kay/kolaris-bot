@@ -1,8 +1,8 @@
-import type { Forwardable } from '@icqq-plus/icqq'
+import type { Forwardable } from '@14kay/icqq-plus'
 import type { Kolaris } from './index'
 import type { PluginInfo } from './types'
 import path from 'node:path'
-import { segment } from '@icqq-plus/icqq'
+import { segment } from '@14kay/icqq-plus'
 import { disablePlugin, enablePlugin, getLocalPlugins } from './plugin'
 
 export async function management(this: Kolaris, command: string, pluginName: string) {

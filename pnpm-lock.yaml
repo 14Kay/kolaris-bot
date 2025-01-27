@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@icqq-plus/icqq':
+      '@14kay/icqq-plus':
         specifier: ^1.3.3
         version: 1.3.3
       '@types/fs-extra':
@@ -543,8 +543,8 @@ packages:
     resolution: {integrity: sha512-c7hNEllBlenFTHBky65mhq8WD2kbN9Q6gk0bTk8lSBvc554jpXSkST1iePudpt7+A/AQvuHs9EMqjHDXMY1lrA==}
     engines: {node: '>=18.18'}
 
-  '@icqq-plus/icqq@1.3.3':
-    resolution: {integrity: sha512-udbnOdCKvNGbPfZJ/chVOn61pznhla/GS5q1PTyNW+MwgZ9NVO+7X3bSqjGM8wvcQVPBV9ukC/O8OSe2EA8Uog==, tarball: https://npm.pkg.github.com/download/@icqq-plus/icqq/1.3.3/907d7f0f1cefaeaaaa94bc73d9f54c2b8d3944a7}
+  '@14kay/icqq-plus@1.3.3':
+    resolution: {integrity: sha512-udbnOdCKvNGbPfZJ/chVOn61pznhla/GS5q1PTyNW+MwgZ9NVO+7X3bSqjGM8wvcQVPBV9ukC/O8OSe2EA8Uog==, tarball: https://npm.pkg.github.com/download/@14kay/icqq-plus/1.3.3/907d7f0f1cefaeaaaa94bc73d9f54c2b8d3944a7}
     engines: {node: '>= v14'}
 
   '@isaacs/cliui@8.0.2':
@@ -3373,7 +3373,7 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.1': {}
 
-  '@icqq-plus/icqq@1.3.3':
+  '@14kay/icqq-plus@1.3.3':
     dependencies:
       '@icqqjs/icqq': 'kolaris-bot@file:'
       axios: 1.7.7
@@ -4893,7 +4893,7 @@ snapshots:
 
   'kolaris-bot@file:':
     dependencies:
-      '@icqq-plus/icqq': 1.3.3
+      '@14kay/icqq-plus': 1.3.3
       '@types/fs-extra': 11.0.4
       '@types/koa': 2.15.0
       '@types/koa-bodyparser': 4.3.12

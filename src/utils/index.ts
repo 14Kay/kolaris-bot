@@ -5,7 +5,7 @@
  * @LastEditTime: 2024-11-17 17:50:11
  * @LastEditors: 14K
  */
-import type { MessageElem } from '@icqq-plus/icqq'
+import type { MessageElem } from '@14kay/icqq-plus'
 import fs from 'node:fs'
 import path from 'node:path'
 

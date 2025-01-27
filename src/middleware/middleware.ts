@@ -5,7 +5,7 @@
  * @LastEditTime: 2024-11-21 18:32:49
  * @LastEditors: 14K
  */
-import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@icqq-plus/icqq'
+import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@14kay/icqq-plus'
 import type { ParsedArgs } from 'minimist'
 import type { CommandOptions } from './types'
 import minimist from 'minimist'

@@ -5,7 +5,7 @@
  * @LastEditTime: 2024-11-21 21:41:28
  * @LastEditors: 14K
  */
-import type { Client, EventMap, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@icqq-plus/icqq'
+import type { Client, EventMap, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@14kay/icqq-plus'
 import type { DatabaseOptions } from 'classic-level'
 import type { ScheduledTask } from 'node-cron'
 import type { Kolaris } from './../core/index'

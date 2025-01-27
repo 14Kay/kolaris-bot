@@ -5,7 +5,7 @@
  * @LastEditTime: 2024-11-21 14:23:11
  * @LastEditors: 14K
  */
-import type { Config } from '@icqq-plus/icqq'
+import type { Config } from '@14kay/icqq-plus'
 import type { PluginConfig } from './../../plugin/types'
 
 export interface PluginInfo {
