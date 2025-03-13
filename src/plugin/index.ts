@@ -24,7 +24,7 @@ export class Plugin {
 	private httpServer: Map<string, any> = new Map()
 	private dbMap: Map<string, Database<any>> = new Map()
 	private cronTasks: ScheduledTask[] = []
-	constructor(public client: Kolaris, public config: PluginConfig = {}) {
+	constructor(public client: Kolaris, public config: PluginConfig = {}, private cb?: () => any) {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
 	}
 
@@ -193,6 +193,8 @@ export class Plugin {
 		this.stopAllHttpServer()
 		this.closeAllLevelDB()
 		this.clearCronTasks()
+		if (this.cb)
+			this.cb()
 		this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
 	}
 }
