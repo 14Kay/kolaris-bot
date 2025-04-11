@@ -87,6 +87,12 @@ export class Kolaris extends Client {
 			})
 		})
 
+		this.on('system.login.device', () => {
+			process.stdin.once('data', () => {
+				this.login()
+			})
+		})
+
 		process.on('SIGINT', () => {
 			this.log('Kolaris is shutting down...', 'warn')
 			this.savePluginFile()
