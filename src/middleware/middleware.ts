@@ -36,6 +36,7 @@ export interface ProcessedData {
 	command?: ParsedArgs
 	type?: MessageTypeMap
 	some?: MessageTypeMap
+	hongbao?: MessageElem[]
 }
 
 export type MessageTypeMap = {
@@ -173,6 +174,21 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('group', e.message)
+			}
+		})
+		return this
+	}
+
+	hongbao() {
+		this.stack.push((context, next) => {
+			try {
+				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const hongbaoMessage = getTargetType(message, 'hongbao')
+				if (hongbaoMessage.length !== 0) {
+					return next('hongbao', hongbaoMessage)
+				}
+			} catch (e: any) {
+				throw new MiddlewareError('hongbao', e.message)
 			}
 		})
 		return this
