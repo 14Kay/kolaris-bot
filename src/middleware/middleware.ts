@@ -10,10 +10,11 @@ import type { ParsedArgs } from 'minimist'
 import type { CommandOptions } from './types'
 import minimist from 'minimist'
 import { getTargetType } from './../utils'
+import { compose } from './compose'
 import { MiddlewareError } from './error'
 
-export type Next = <K extends keyof ProcessedData>(key: K, data?: ProcessedData[K]) => Promise<any> | any
-type TMiddleware<T> = (context: T, next: Next) => Promise<void> | void
+export type Next = () => Promise<any>
+export type TMiddleware<T> = (context: T, next: Next) => Promise<void> | void
 type GroupedByType = Record<string, MessageElem[]>
 
 export interface IMiddleware<T> {
@@ -43,6 +44,8 @@ export type MessageTypeMap = {
 	[K in MessageElem['type']]?: Extract<MessageElem, { type: K }>[];
 }
 
+type Context<T> = T & { results: ProcessedData }
+
 export class MessageMiddleware<T> implements IMiddleware<T> {
 	stack: TMiddleware<T>[] = []
 
@@ -64,33 +67,25 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	}
 
 	public run(context: T, callback?: (data: ProcessedData) => any) {
-		const index = 0
-		const data: ProcessedData = {}
-		const runner = async (index: number): Promise<any> => {
-			if (index === this.stack.length) {
-				if (callback)
-					await callback(data)
-				return
-			}
+		const ctx = context as Context<T>
+		ctx.results = {}
 
-			const middleware = this.stack[index]
-			try {
-				await middleware(context, (key, response) => {
-					data[key] = response
-					runner(index + 1)
-				})
-			} catch (err: any) {
-				throw new MiddlewareError(err.name, err.message)
-			}
-		}
+		const fn = compose(this.stack)
 
-		return runner(index)
+		return fn(ctx as any).then(() => {
+			if (callback)
+				return callback(ctx.results)
+			return ctx.results
+		}).catch((err) => {
+			throw new MiddlewareError(err.name || 'MiddlewareError', err.message)
+		})
 	}
 
 	blackWords(words: string | string[]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
 				if (Array.isArray(words) && words.includes(textMessage)) {
 					throw new MiddlewareError('blackWords', 'Message contains black words')
@@ -98,7 +93,8 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 				if (typeof words === 'string' && textMessage === words) {
 					throw new MiddlewareError('blackWords', 'Message contains black words')
 				}
-				return next('blackWord', textMessage)
+				ctx.results.blackWord = textMessage
+				return next()
 			} catch (e: any) {
 				throw new MiddlewareError('blackWords', e.message)
 			}
@@ -108,16 +104,18 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	at(uin: number | number[]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
 				const uinList = Array.isArray(uin) ? uin : [uin]
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const atMessage = message.filter(msg =>
 					msg.type === 'at' && msg.qq !== 'all' && uinList.includes(msg.qq),
 				) as AtElem[]
 
 				if (atMessage.length > 0) {
 					const uniqueUins = [...new Set(atMessage.map(elem => elem.qq))]
-					return next('at', uniqueUins as number[])
+					ctx.results.at = uniqueUins as number[]
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('at', e.message)
@@ -128,16 +126,19 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	equal(text: string | string[]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
 				if (Array.isArray(text)) {
 					if (text.includes(textMessage)) {
-						return next('equal', textMessage)
+						ctx.results.equal = textMessage
+						return next()
 					}
 				}
 				if (textMessage === text) {
-					return next('equal', textMessage)
+					ctx.results.equal = textMessage
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('equal', e.message)
@@ -148,15 +149,17 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	reg(reg: RegExp) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const textMessage = getTargetType(message, 'text')
 					.map(elem => elem.text.trim())
 					.join('')
 
 				const match = textMessage.match(reg) // 获取匹配结果
 				if (match) {
-					return next('reg', match)
+					ctx.results.reg = match
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('reg', e.message)
@@ -167,10 +170,12 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	group(groups: number[] | number) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & GroupMessageEvent
 			try {
-				const { group_id } = context as GroupMessageEvent
+				const { group_id } = ctx
 				if ((Array.isArray(groups) && groups.includes(group_id)) || groups === group_id) {
-					return next('group_id', group_id)
+					ctx.results.group_id = group_id
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('group', e.message)
@@ -181,11 +186,13 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	hongbao() {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const hongbaoMessage = getTargetType(message, 'hongbao')
 				if (hongbaoMessage.length !== 0) {
-					return next('hongbao', hongbaoMessage)
+					ctx.results.hongbao = hongbaoMessage
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('hongbao', e.message)
@@ -196,13 +203,15 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	sender(uin: number | number[]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { sender } = context as GroupMessageEvent | PrivateMessageEvent
+				const { sender } = ctx
 				if (!Array.isArray(uin)) {
 					uin = [uin]
 				}
 				if (uin.includes(sender.user_id)) {
-					return next('sender', sender.user_id)
+					ctx.results.sender = sender.user_id
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('sender', e.message)
@@ -214,51 +223,61 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 	getImage() {
 		this.stack.push((context, next) => {
-			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
+			const { message } = ctx
 			const imageMessage = getTargetType(message, 'image')
 			if (imageMessage.length !== 0) {
-				return next('imageList', imageMessage)
+				ctx.results.imageList = imageMessage
+				return next()
 			}
-			return next('imageList', [])
+			ctx.results.imageList = []
+			return next()
 		})
 		return this
 	}
 
 	getText() {
 		this.stack.push((context, next) => {
-			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
+			const { message } = ctx
 			const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
-			return next('text', textMessage || '')
+			ctx.results.text = textMessage || ''
+			return next()
 		})
 		return this
 	}
 
 	getAt() {
 		this.stack.push((context, next) => {
-			const { message } = context as GroupMessageEvent | PrivateMessageEvent
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
+			const { message } = ctx
 			const atMessage = getTargetType(message, 'at')
 			if (atMessage.length !== 0) {
 				const atUin = atMessage.filter(elem => elem.qq !== 'all').map(elem => elem.qq)
-				return next('atList', atUin as number[])
+				ctx.results.atList = atUin as number[]
+				return next()
 			}
-			return next('atList', [])
+			ctx.results.atList = []
+			return next()
 		})
 		return this
 	}
 
 	startsWith(prefix: string | string[]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
 				if (!Array.isArray(prefix)) {
 					prefix = [prefix]
 				}
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
 
 				const matchedPrefix = prefix.find(pre => textMessage.startsWith(pre))
 
 				if (matchedPrefix) {
-					return next('restText', textMessage.slice(matchedPrefix.length).trim())
+					ctx.results.restText = textMessage.slice(matchedPrefix.length).trim()
+					return next()
 				}
 			} catch (e: any) {
 				throw new MiddlewareError('startsWith', e.message)
@@ -273,12 +292,13 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
   * @param {Next} callback
   * @return {*}
   */
-	type(types: MessageElem['type'] | MessageElem['type'][], callback?: Next) {
+	type(types: MessageElem['type'] | MessageElem['type'][]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
 				if (!Array.isArray(types))
 					types = [types]
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				// 获取消息中的所有类型
 				const messageTypes = message.map((elem: MessageElem) => elem.type)
 				// 确保消息中的每个类型都在指定类型中，且消息没有多余的类型
@@ -286,11 +306,11 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 				if (messageTypeCheckResult) {
 					const messageTypeMap = this.groupByType(message, types)
-					return next('type', messageTypeMap)
+					ctx.results.type = messageTypeMap
+					return next()
 				}
 				throw new MiddlewareError('messageType', `Message type not match. Expected: ${types.join(', ')}, but got: ${messageTypes.join(', ')}`)
 			} catch (e: any) {
-				callback && callback(e.message)
 				throw new MiddlewareError('messageType', e.message)
 			}
 		})
@@ -300,38 +320,39 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 	/**
 	 * @description: 检查消息是否包含指定类型
 	 * @param {string} types
-	 * @param {Next} callback
 	 * @return {*}
 	 */
-	some(types: MessageElem['type'] | MessageElem['type'][], callback?: Next) {
+	some(types: MessageElem['type'] | MessageElem['type'][]) {
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
 				if (!Array.isArray(types))
 					types = [types]
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const messageTypeCheckResult = Array.from(new Set(types)).every((type) => {
 					return message.some((elem: MessageElem) => elem.type === type)
 				})
 				if (messageTypeCheckResult) {
 					const someMessageTypeMap = this.groupByType(message, types)
-					return next('some', someMessageTypeMap)
+					ctx.results.some = someMessageTypeMap
+					return next()
 				}
 				throw new MiddlewareError('messageType', 'Message type not match')
 			} catch (e: any) {
-				callback && callback(e.message)
 				throw new MiddlewareError('messageType', e.message)
 			}
 		})
 		return this
 	}
 
-	command(option: CommandOptions | CommandOptions[], callback?: Next) {
+	command(option: CommandOptions | CommandOptions[]) {
 		if (!(Array.isArray(option))) {
 			option = [option]
 		}
 		this.stack.push((context, next) => {
+			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
-				const { message } = context as GroupMessageEvent | PrivateMessageEvent
+				const { message } = ctx
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
 				const args = minimist(textMessage.split(/\s+/))
 				if (args.help) {
@@ -390,10 +411,12 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 					return true
 				})
 
-				if (checkPassed)
-					return next('command', args)
+				if (checkPassed) {
+					ctx.results.command = args
+					return next()
+				}
 			} catch (e: any) {
-				callback && callback(e.message)
+				// callback && callback(e.message)
 				throw new MiddlewareError('command', e.message)
 			}
 		})

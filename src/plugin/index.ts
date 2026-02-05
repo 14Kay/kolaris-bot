@@ -24,7 +24,9 @@ export class Plugin {
 	private httpServer: Map<string, any> = new Map()
 	private dbMap: Map<string, Database<any>> = new Map()
 	private cronTasks: ScheduledTask[] = []
-	constructor(public client: Kolaris, public config: PluginConfig = {}, private cb?: () => any) {
+
+	// 限制对 client 的直接访问，鼓励使用封装好的 API
+	constructor(protected client: Kolaris, public config: PluginConfig = {}, private cb?: () => any) {
 		client.logger.info(`KolarisPlugin - 插件实例化成功: ${config.name}`)
 	}
 
@@ -184,17 +186,29 @@ export class Plugin {
 
 	private removeListeners() {
 		for (const [key, handlers] of this.handlers) {
-			handlers.forEach(handler => this.client.offTrap(key, handler))
+			handlers.forEach((handler) => {
+				// 尝试使用 offTrap，如果不存在则回退到 off/removeListener
+				if (typeof this.client.offTrap === 'function') {
+					this.client.offTrap(key, handler)
+				} else {
+					// 强制转换以兼容 icqq-plus 可能的非标准类型定义
+					(this.client as any).removeListener(key, handler)
+				}
+			})
 		}
 	}
 
 	destroy() {
-		this.removeListeners()
-		this.stopAllHttpServer()
-		this.closeAllLevelDB()
-		this.clearCronTasks()
-		if (this.cb)
-			this.cb()
-		this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
+		try {
+			this.removeListeners()
+			this.stopAllHttpServer()
+			this.closeAllLevelDB()
+			this.clearCronTasks()
+			if (this.cb)
+				this.cb()
+			this.client.logger.mark(`KolarisPlugin - 插件 ${this.config.name} 已卸载`)
+		} catch (e: any) {
+			this.client.logger.error(`KolarisPlugin - 卸载插件 ${this.config.name} 时发生错误: ${e.message}`)
+		}
 	}
 }

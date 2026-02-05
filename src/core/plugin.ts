@@ -31,11 +31,14 @@ const logError = function (this: Kolaris, message: string, error: Error) {
  * @return {*}
  */
 export async function getLocalPlugins(this: Kolaris) {
-	const pluginNameList = getDirName(this.pluginDir)
-	const pluginList: PluginInfo[] = pluginNameList.map((name) => {
-		const config = fsExtra.readJSONSync(path.join(this.pluginDir, name, 'package.json'))
-		return { name, info: config }
-	})
+	const pluginNameList = await getDirName(this.pluginDir)
+	const pluginList: PluginInfo[] = await Promise.all(
+		pluginNameList.map(async (name) => {
+			const pkgPath = path.join(this.pluginDir, name, 'package.json')
+			const config = await fsExtra.readJSON(pkgPath)
+			return { name, info: config }
+		}),
+	)
 	return pluginList
 }
 
@@ -62,7 +65,7 @@ export async function loadSavedPlugins(this: Kolaris) {
 		}),
 	)
 
-	this.savePluginFile()
+	await this.savePluginFile()
 	return {
 		success: this.pluginList.actived.length,
 		error: this.pluginList.error.length,
@@ -82,8 +85,9 @@ export async function enablePlugin(this: Kolaris, pluginPath: string, name: stri
 		const _plugin = await require(pluginPath)
 		const plugin: BotPlugin = _plugin.default || _plugin
 		const pkg = path.join(pluginPath, 'package.json')
-		const config: PluginInfo['info'] = fsExtra.pathExistsSync(pkg)
-			? fsExtra.readJSONSync(pkg)
+		const hasPkg = await fsExtra.pathExists(pkg)
+		const config: PluginInfo['info'] = hasPkg
+			? await fsExtra.readJSON(pkg)
 			: {}
 		if (plugin) {
 			const pluginInstance = plugin.setup(this, config)
@@ -122,22 +126,33 @@ export async function disablePlugin(this: Kolaris, name: string) {
 }
 
 export function deleteCache(modulePath: string) {
-	const resolvedPath = require.resolve(modulePath)
-	const mod = require.cache[resolvedPath]
-	if (!mod) {
-		return
-	}
-	const idx = require.main?.children.indexOf(mod) as number
-	if (idx >= 0) {
-		require.main?.children.splice(idx, 1)
-	}
+	try {
+		const resolvedPath = require.resolve(modulePath)
+		const mod = require.cache[resolvedPath]
 
-	Object.keys(require.cache).forEach((fullpath) => {
-		const cachedMod = require.cache[fullpath]
-		if (cachedMod?.id.startsWith(mod.path)) {
-			delete require.cache[fullpath]
+		if (!mod)
+			return
+
+		// 递归删除子模块引用，防止内存泄漏
+		if (mod.children) {
+			mod.children.forEach((child) => {
+				// 确保只删除属于该插件目录下的模块
+				if (child.id.startsWith(path.dirname(mod.id))) {
+					deleteCache(child.id)
+				}
+			})
 		}
-	})
 
-	delete require.cache[resolvedPath]
+		// 从父模块中移除引用
+		if (mod.parent) {
+			const idx = mod.parent.children.indexOf(mod)
+			if (idx >= 0) {
+				mod.parent.children.splice(idx, 1)
+			}
+		}
+
+		delete require.cache[resolvedPath]
+	} catch {
+		// 忽略无法解析的路径错误
+	}
 }

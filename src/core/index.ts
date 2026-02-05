@@ -54,18 +54,22 @@ export class Kolaris extends Client {
 	}
 
 	// 保存插件列表到plugin.json
-	savePluginFile() {
-		return fsExtra.writeJsonSync(this.pluginFilePath, this.pluginList, { spaces: 2 })
+	async savePluginFile() {
+		return fsExtra.writeJson(this.pluginFilePath, this.pluginList, { spaces: 2 })
 	}
 
 	// 保存单个插件的配置到package.json
-	savePluginConfig() {
+	async savePluginConfig() {
+		const tasks = []
 		for (const [name, plugin] of this.pluginActivedMap) {
 			const pkg = path.join(this.pluginDir, name, 'package.json')
-			if (fsExtra.pathExistsSync(pkg)) {
-				fsExtra.writeJsonSync(pkg, plugin.config, { spaces: 2 })
-			}
+			tasks.push((async () => {
+				if (await fsExtra.pathExists(pkg)) {
+					await fsExtra.writeJson(pkg, plugin.config, { spaces: 2 })
+				}
+			})())
 		}
+		await Promise.all(tasks)
 	}
 
 	initListener() {
@@ -93,10 +97,16 @@ export class Kolaris extends Client {
 			})
 		})
 
-		process.on('SIGINT', () => {
+		process.on('SIGINT', async () => {
 			this.log('Kolaris is shutting down...', 'warn')
-			this.savePluginFile()
-			this.savePluginConfig()
+			try {
+				await Promise.all([
+					this.savePluginFile(),
+					this.savePluginConfig(),
+				])
+			} catch (e) {
+				this.log(`Error during shutdown save: ${e}`, 'error')
+			}
 			process.exit()
 		})
 	}
