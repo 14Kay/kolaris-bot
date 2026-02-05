@@ -55,7 +55,7 @@
     "prepare": "simple-git-hooks"
   },
   "dependencies": {
-    "@14kay/icqq-plus": "^1.3.3",
+    "@14kay/icqq-plus": "^1.10.21",
     "@types/fs-extra": "^11.0.4",
     "@types/koa": "^2.15.0",
     "@types/koa-bodyparser": "^4.3.12",

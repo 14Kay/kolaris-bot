@@ -72,10 +72,14 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 
 		const fn = compose(this.stack)
 
-		return fn(ctx as any).then(() => {
-			if (callback)
+		return fn(ctx as any).then((completed) => {
+			// 只有当所有中间件都成功执行（completed === true）时才触发 callback
+			if (completed && callback)
 				return callback(ctx.results)
-			return ctx.results
+			if (completed)
+				return ctx.results
+			// 中间件链被中断（有中间件没有调用 next），返回空
+			return undefined
 		}).catch((err) => {
 			throw new MiddlewareError(err.name || 'MiddlewareError', err.message)
 		})
