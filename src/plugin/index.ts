@@ -1,3 +1,8 @@
+import Koa from 'koa'
+import koaBodyParser from 'koa-bodyparser'
+import KoaRouter from 'koa-router'
+import * as nodeCron from 'node-cron'
+import { WebSocketServer } from 'ws'
 /*
  * @Description: 插件系统
  * @Author: 14K
@@ -7,21 +12,21 @@
  */
 import type { Client, EventMap, GroupMessageEvent, PrivateMessageEvent, Sendable } from '@14kay/icqq-plus'
 import type { DatabaseOptions } from 'classic-level'
+import type { Server as HttpServer } from 'node:http'
 import type { ScheduledTask } from 'node-cron'
-import type { Kolaris } from './../core/index'
-import type { PluginConfig } from './types'
-import Koa from 'koa'
-import koaBodyParser from 'koa-bodyparser'
-import KoaRouter from 'koa-router'
-import * as nodeCron from 'node-cron'
+import type { ServerOptions, WebSocket } from 'ws'
 import { PluginError } from './../utils'
 import { Database } from './leveldb'
+import type { Kolaris } from './../core/index'
+import type { PluginConfig } from './types'
 
 export type HttpHandler = (router: KoaRouter) => any
+export type WebSocketHandler = (ws: WebSocket, req: any) => any
 type Func = (...args: any[]) => any
 export class Plugin {
 	private handlers: Map<string, Func[]> = new Map()
-	private httpServer: Map<string, any> = new Map()
+	private httpServer: Map<string, HttpServer> = new Map()
+	private wsServers: Map<string, WebSocketServer> = new Map()
 	private dbMap: Map<string, Database<any>> = new Map()
 	private cronTasks: ScheduledTask[] = []
 
@@ -142,6 +147,65 @@ export class Plugin {
 		server.close(() => this.client.logger.info(`KolarisPlugin - HTTP服务`, `HTTP服务已关闭，端口：${port}`))
 	}
 
+	/**
+	 * 创建 WebSocket 服务器
+	 * @param port 端口号
+	 * @param handler WebSocket 连接处理函数
+	 * @param options WebSocket 服务器选项（可选）
+	 */
+	ws(port: number, handler: WebSocketHandler, options?: Partial<ServerOptions>) {
+		if (this.wsServers.has(port.toString())) {
+			this.client.logger.warn(`KolarisPlugin - WebSocket服务`, `WebSocket服务已在端口：${port} 运行`)
+			throw new PluginError(this.config.name, 'WebSocket服务已在端口运行')
+		}
+
+		const wss = new WebSocketServer({ port, ...options })
+
+		wss.on('connection', (ws: WebSocket, req: any) => {
+			this.client.logger.info(`KolarisPlugin - WebSocket`, `新连接建立，端口：${port}`)
+			handler(ws, req)
+		})
+
+		wss.on('error', (err: Error) => {
+			this.client.logger.error(`KolarisPlugin - WebSocket`, `端口：${port} 的WebSocket服务发生错误：${err.message}`)
+		})
+
+		wss.on('listening', () => {
+			this.client.logger.info(`KolarisPlugin - WebSocket服务`, `WebSocket服务已启动，端口：${port}`)
+		})
+
+		this.wsServers.set(port.toString(), wss)
+		return this
+	}
+
+	/**
+	 * 停止指定端口的 WebSocket 服务器
+	 */
+	stopWs(port: number) {
+		const wss = this.wsServers.get(port.toString())
+		if (!wss) {
+			this.client.logger.warn(`KolarisPlugin - WebSocket服务`, `未找到端口：${port} 的WebSocket服务`)
+			throw new PluginError(this.config.name, '未找到WebSocket服务')
+		}
+
+		wss.close(() => {
+			this.client.logger.info(`KolarisPlugin - WebSocket服务`, `WebSocket服务已关闭，端口：${port}`)
+		})
+		this.wsServers.delete(port.toString())
+	}
+
+	/**
+	 * 停止所有 WebSocket 服务器
+	 */
+	private stopAllWebSocketServers() {
+		for (const [port, wss] of this.wsServers) {
+			wss.close(() => {
+				this.client.logger.info(`KolarisPlugin - WebSocket服务`, `WebSocket服务已关闭，端口：${port}`)
+			})
+		}
+		this.wsServers.clear()
+	}
+
 	getLevelDB<T = Record<string, string>>(location: string) {
 		if (!this.dbMap.has(location))
 			throw new PluginError(this.config.name, `数据库${location}不存在`)
@@ -202,6 +266,7 @@ export class Plugin {
 		try {
 			this.removeListeners()
 			this.stopAllHttpServer()
+			this.stopAllWebSocketServers()
 			this.closeAllLevelDB()
 			this.clearCronTasks()
 			if (this.cb)

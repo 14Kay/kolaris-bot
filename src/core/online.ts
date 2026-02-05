@@ -1,3 +1,7 @@
+import process from 'node:process'
+import { MessageMiddleware } from './../middleware'
+import { management } from './manage'
+import { getLocalPlugins, loadSavedPlugins } from './plugin'
 /*
  * @Description: 上线事件
  * @Author: 14K
@@ -6,10 +10,6 @@
  * @LastEditors: 14K
  */
 import type { Kolaris } from './index'
-import process from 'node:process'
-import { MessageMiddleware } from './../middleware'
-import { management } from './manage'
-import { getLocalPlugins, loadSavedPlugins } from './plugin'
 
 export async function online(this: Kolaris) {
 	const errorHandler = (e: Error) => {

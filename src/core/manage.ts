@@ -1,9 +1,9 @@
-import type { Forwardable } from '@14kay/icqq-plus'
-import type { Kolaris } from './index'
-import type { PluginInfo } from './types'
 import path from 'node:path'
 import { segment } from '@14kay/icqq-plus'
+import type { Forwardable } from '@14kay/icqq-plus'
 import { disablePlugin, enablePlugin, getLocalPlugins } from './plugin'
+import type { Kolaris } from './index'
+import type { PluginInfo } from './types'
 
 export async function management(this: Kolaris, command: string, pluginName: string) {
 	const pluginCmdList = ['on', 'off', 'reboot', 'list', 'active']

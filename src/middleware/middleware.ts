@@ -1,3 +1,4 @@
+import minimist from 'minimist'
 /*
  * @Description: 消息处理中间件
  * @Author: 14K
@@ -7,11 +8,10 @@
  */
 import type { AtElem, GroupMessageEvent, ImageElem, MessageElem, PrivateMessageEvent } from '@14kay/icqq-plus'
 import type { ParsedArgs } from 'minimist'
-import type { CommandOptions } from './types'
-import minimist from 'minimist'
 import { getTargetType } from './../utils'
 import { compose } from './compose'
 import { MiddlewareError } from './error'
+import type { CommandOptions } from './types'
 
 export type Next = () => Promise<any>
 export type TMiddleware<T> = (context: T, next: Next) => Promise<void> | void
@@ -349,6 +349,9 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 		if (!(Array.isArray(option))) {
 			option = [option]
 		}
+		// 明确告诉 TypeScript option 现在是数组
+		const options: CommandOptions[] = option
+
 		this.stack.push((context, next) => {
 			const ctx = context as Context<T> & (GroupMessageEvent | PrivateMessageEvent)
 			try {
@@ -356,13 +359,13 @@ export class MessageMiddleware<T> implements IMiddleware<T> {
 				const textMessage = getTargetType(message, 'text').map(elem => elem.text.trim()).join('')
 				const args = minimist(textMessage.split(/\s+/))
 				if (args.help) {
-					const helpMessage = option.map((opt) => {
+					const helpMessage = options.map((opt) => {
 						const { command, alias, description, required, type, defaultValue } = opt
 						return `-${alias}, --${command}: ${description} ${required ? '(required)' : ''} ${type ? `(${type})` : ''} ${defaultValue ? `(default: ${defaultValue})` : ''}`
 					}).join('\n')
 					throw new MiddlewareError('command', helpMessage)
 				}
-				const checkPassed = option.every((opt) => {
+				const checkPassed = options.every((opt) => {
 					const { command, alias, required, type, defaultValue } = opt
 					args[command] ||= args[alias]
 					args[alias] ||= args[command]

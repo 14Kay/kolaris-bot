@@ -1,3 +1,7 @@
+import path from 'node:path'
+import fsExtra from 'fs-extra'
+import { Plugin } from './../plugin'
+import { getDirName, KolarisError } from './../utils'
 /*
  * @Description:
  * @Author: 14K
@@ -8,10 +12,6 @@
 import type { BotPlugin } from './../plugin/types'
 import type { Kolaris } from './index'
 import type { PluginInfo } from './types'
-import path from 'node:path'
-import fsExtra from 'fs-extra'
-import { Plugin } from './../plugin'
-import { getDirName, KolarisError } from './../utils'
 
 const resultTextMap = {
 	success: '插件载入成功',

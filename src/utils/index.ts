@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 /*
  * @Description:
  * @Author: 14K
@@ -6,8 +8,6 @@
  * @LastEditors: 14K
  */
 import type { MessageElem } from '@14kay/icqq-plus'
-import fs from 'node:fs'
-import path from 'node:path'
 
 export function getDirName(dir: string): string[] {
 	return fs.readdirSync(dir)

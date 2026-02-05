@@ -6,15 +6,15 @@
  * @LastEditors: 14K
  */
 
-import type { Buffer } from 'node:buffer'
-import type { Plugin } from './../plugin'
-import type { KolarisConfig, PluginJson } from './types'
 import path from 'node:path'
 import process from 'node:process'
 import { Client } from '@14kay/icqq-plus'
 import fsExtra from 'fs-extra'
+import type { Buffer } from 'node:buffer'
 import { KolarisError } from './../utils'
 import { online } from './online'
+import type { Plugin } from './../plugin'
+import type { KolarisConfig, PluginJson } from './types'
 
 export class Kolaris extends Client {
 	pluginActivedMap: Map<string, Plugin> = new Map()
